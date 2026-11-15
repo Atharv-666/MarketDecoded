@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import axios from 'axios';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import API from '../api';
 import * as LightweightCharts from 'lightweight-charts';
 import {
   ArrowLeft,
@@ -28,7 +28,7 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
   const [timeRange, setTimeRange] = useState('1Y'); // '1M' | '6M' | '1Y' | '3Y' | '5Y' | 'ALL'
   const [bookmarked, setBookmarked] = useState(false);
 
-  // Return Calculator States (Matches Groww's Return Calculator)
+  // Return Calculator States
   const [calcMode, setCalcMode] = useState('sip'); // 'sip' | 'lumpsum'
   const [investmentAmount, setInvestmentAmount] = useState(1000);
 
@@ -85,7 +85,7 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
       };
     };
 
-    axios.get(`http://localhost:5000/api/mutual-funds/${schemeCode}`)
+    API.get(`/mutual-funds/${schemeCode}`)
       .then((res) => {
         if (res.data && res.data.historicalNav) {
           setFundData(processRawMFData({ meta: res.data.meta, data: res.data.historicalNav }));
@@ -95,10 +95,12 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
         }
       })
       .catch(() => {
-        axios.get(`https://api.mfapi.in/mf/${schemeCode}`)
-          .then((res) => {
-            if (res.data && res.data.data && res.data.data.length > 0) {
-              setFundData(processRawMFData(res.data));
+        // Fallback directly to external MFapi.in if needed
+        fetch(`https://api.mfapi.in/mf/${schemeCode}`)
+          .then((res) => res.json())
+          .then((resData) => {
+            if (resData && resData.data && resData.data.length > 0) {
+              setFundData(processRawMFData(resData));
             }
             setLoading(false);
           })
@@ -127,7 +129,7 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
     if (slicedData.length === 0) return;
 
     const isPositive = slicedData[slicedData.length - 1].value >= slicedData[0].value;
-    const lineColor = isPositive ? '#00b386' : '#eb5b3c'; // Groww Mint Green / Coral Red
+    const lineColor = isPositive ? '#00b386' : '#eb5b3c';
 
     const chart = LightweightCharts.createChart(container, {
       width: container.clientWidth,
@@ -140,12 +142,8 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
         vertLines: { visible: false },
         horzLines: { color: '#1b202c' },
       },
-      rightPriceScale: {
-        visible: false, // Clean minimal look like Groww
-      },
-      leftPriceScale: {
-        visible: false,
-      },
+      rightPriceScale: { visible: false },
+      leftPriceScale: { visible: false },
       timeScale: {
         borderColor: '#1f2430',
         visible: false,
@@ -208,7 +206,7 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
     };
   }, [fundData, chartType, timeRange]);
 
-  // Historical Backtest Table Calculation (1Y, 3Y, 5Y, 10Y) using actual fund NAV data
+  // Historical Backtest Table Calculation
   const backtestRows = useMemo(() => {
     if (!fundData || !fundData.seriesData.length) return [];
 
@@ -229,7 +227,6 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
         const months = h.years * 12;
         const totalInvested = investmentAmount * months;
 
-        // Accumulate units month-by-month using real historical NAV slices
         let totalUnits = 0;
         const step = Math.max(1, Math.floor(availableSlice.length / months));
         for (let m = 0; m < months; m++) {
@@ -247,7 +244,6 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
           absReturnPct: parseFloat(absReturnPct)
         };
       } else {
-        // One-time (Lumpsum) backtest using actual historical NAV
         const totalInvested = investmentAmount;
         const unitsBought = totalInvested / startNav;
         const currentValue = Math.round(unitsBought * latestNav);
@@ -289,7 +285,6 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-16">
-      {/* Top Back Navigation */}
       <button
         onClick={onBack}
         className="flex items-center gap-2 text-xs font-semibold text-gray-400 hover:text-emerald-400 transition cursor-pointer"
@@ -297,20 +292,17 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
         <ArrowLeft className="w-4 h-4" /> Back to Mutual Funds
       </button>
 
-      {/* SECTION 1: GROWW-STYLE HEADER + INTERACTIVE CHART */}
+      {/* SECTION 1: HEADER + CHART */}
       <div className="bg-[#121620] border border-[#1f2430] rounded-2xl p-6 md:p-8 shadow-xl">
-        {/* Top AMC Logo & Bookmark Row */}
         <div className="flex items-center justify-between mb-4">
           <div className="w-11 h-11 rounded-xl bg-[#0b0e14] border border-[#1f2430] flex items-center justify-center text-emerald-400 font-extrabold text-sm shadow-inner">
             <Building2 className="w-5 h-5" />
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Line vs Candle Graph Toggle */}
             <div className="flex items-center bg-[#0b0e14] p-1 rounded-xl border border-[#1f2430]">
               <button
                 onClick={() => setChartType('line')}
-                title="Line Graph"
                 className={`p-1.5 rounded-lg transition cursor-pointer ${
                   chartType === 'line' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-400 hover:text-white'
                 }`}
@@ -319,7 +311,6 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
               </button>
               <button
                 onClick={() => setChartType('candle')}
-                title="Candle Graph"
                 className={`p-1.5 rounded-lg transition cursor-pointer ${
                   chartType === 'candle' ? 'bg-emerald-500/20 text-emerald-400' : 'text-gray-400 hover:text-white'
                 }`}
@@ -328,7 +319,6 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
               </button>
             </div>
 
-            {/* Bookmark Button */}
             <button
               onClick={() => setBookmarked(!bookmarked)}
               className={`w-9 h-9 rounded-full border flex items-center justify-center transition cursor-pointer ${
@@ -342,12 +332,10 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
           </div>
         </div>
 
-        {/* Fund Title */}
         <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight">
           {meta.scheme_name}
         </h1>
 
-        {/* 3 Pill Tags: Equity | Category | Very High Risk */}
         <div className="flex flex-wrap items-center gap-2 mt-3">
           <span className="px-3 py-1 rounded-full text-xs font-medium bg-[#0b0e14] text-gray-300 border border-[#1f2430]">
             Equity
@@ -360,7 +348,6 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
           </span>
         </div>
 
-        {/* Big Return % Display (Matches Image 1) */}
         <div className="mt-6">
           <div className="flex items-baseline gap-2">
             <span className={`text-3xl font-extrabold ${isRangeUp ? 'text-[#00b386]' : 'text-[#eb5b3c]'}`}>
@@ -376,10 +363,8 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
           </div>
         </div>
 
-        {/* Chart Canvas */}
         <div ref={chartContainerRef} className="w-full h-[310px] mt-4" />
 
-        {/* Centered Pill Timeframe Selector (1M, 6M, 1Y, 3Y, 5Y, All) */}
         <div className="pt-4 border-t border-[#1f2430] flex items-center justify-center gap-2 md:gap-3">
           {['1M', '6M', '1Y', '3Y', '5Y', 'ALL'].map((tf) => (
             <button
@@ -396,7 +381,7 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
           ))}
         </div>
 
-        {/* SECTION 2: 5-ITEM KEY FUND METRICS GRID (Matches Image 2) */}
+        {/* SECTION 2: FUND METRICS GRID */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4 mt-8 pt-6 border-t border-[#1f2430]">
           <div>
             <span className="text-xs text-gray-400 block">NAV: {latestDate}</span>
@@ -430,12 +415,11 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
         </div>
       </div>
 
-      {/* SECTION 3: GROWW-STYLE RETURN CALCULATOR WITH HISTORICAL BACKTEST TABLE (Matches Images 2 & 3) */}
+      {/* SECTION 3: RETURN CALCULATOR & BACKTEST */}
       <div className="space-y-4">
         <h2 className="text-lg font-bold text-white">Return calculator</h2>
 
         <div className="bg-[#121620] border border-[#1f2430] rounded-2xl p-6 md:p-8 shadow-xl">
-          {/* Monthly SIP / One Time Pill Switcher */}
           <div className="flex justify-center">
             <div className="inline-flex bg-[#0b0e14] p-1 rounded-full border border-[#1f2430]">
               <button
@@ -467,7 +451,6 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
             </div>
           </div>
 
-          {/* Investment Amount Display + Slider */}
           <div className="mt-6 text-center max-w-lg mx-auto">
             <span className="text-xs text-gray-400 block">
               {calcMode === 'sip' ? 'Monthly investment' : 'One-time investment'}
@@ -487,7 +470,6 @@ export default function MutualFundDetail({ schemeCode, onBack }) {
             />
           </div>
 
-          {/* Historical Returns Comparison Table (Matches Image 3) */}
           <div className="mt-8 pt-4 border-t border-[#1f2430] overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>

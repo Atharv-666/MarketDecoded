@@ -20,7 +20,7 @@ import {
   MapPin,
   Calendar
 } from 'lucide-react';
-import axios from 'axios';
+import API from '../api';
 
 export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataUpdate }) {
   const chartContainerRef = useRef(null);
@@ -80,7 +80,7 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
       setLoading(true);
       setErrorMsg('');
       try {
-        const res = await axios.get(`http://localhost:5000/api/stocks/candles/${encodeURIComponent(symbol)}?range=${range}`);
+        const res = await API.get(`/stocks/candles/${encodeURIComponent(symbol)}?range=${range}`);
         if (res.data) {
           setStockData(prev => ({
             ...prev,
@@ -215,7 +215,7 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
     const months = sipYears * 12;
     const invested = sipMonthly * months;
     if (monthlyRate === 0) return { invested, total: invested, returns: 0 };
-    const total = sipMonthly * ((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate);
+    const total = sipMonthly * (((Math.pow(1 + monthlyRate, months) - 1) / monthlyRate) * (1 + monthlyRate));
     const returns = total - invested;
     return {
       invested: Math.round(invested),

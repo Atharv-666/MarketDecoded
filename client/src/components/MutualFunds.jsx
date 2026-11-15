@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import API from '../api';
 import { Search, TrendingUp, ShieldCheck, ArrowRight, Sparkles, Layers, Calculator } from 'lucide-react';
 
 // Curated Popular Indian Direct Mutual Funds (Real AMFI Scheme Codes - prevents blank screen!)
@@ -70,10 +70,10 @@ export default function MutualFunds({ onSelectFund }) {
   const [loadingDirectory, setLoadingDirectory] = useState(false);
   const searchRef = useRef(null);
 
-  // Fetch full AMFI directory in background (with direct MFapi fallback if backend route isn't mounted yet)
+  // Fetch full AMFI directory in background (with direct MFapi fallback if needed)
   useEffect(() => {
     setLoadingDirectory(true);
-    axios.get('http://localhost:5000/api/mutual-funds')
+    API.get('/mutual-funds')
       .then(res => {
         if (Array.isArray(res.data) && res.data.length > 0) {
           setAllFunds(res.data);
@@ -81,10 +81,11 @@ export default function MutualFunds({ onSelectFund }) {
         setLoadingDirectory(false);
       })
       .catch(() => {
-        // Fallback directly to MFapi.in if local backend route isn't running
-        axios.get('https://api.mfapi.in/mf')
-          .then(res => {
-            setAllFunds(res.data || []);
+        // Fallback directly to external MFapi.in if needed
+        fetch('https://api.mfapi.in/mf')
+          .then(res => res.json())
+          .then(data => {
+            setAllFunds(data || []);
             setLoadingDirectory(false);
           })
           .catch(() => setLoadingDirectory(false));
@@ -102,7 +103,7 @@ export default function MutualFunds({ onSelectFund }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Search across ALL 14,000+ AMFI funds, prioritizing "Direct" & "Growth" plans
+  // Search across AMFI funds, prioritizing "Direct" & "Growth" plans
   const searchResults = searchQuery.trim().length > 1
     ? allFunds
         .filter(f => f.schemeName && f.schemeName.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -121,11 +122,12 @@ export default function MutualFunds({ onSelectFund }) {
 
   return (
     <div className="space-y-8 pb-12">
-      {/* Hero / Search Header Section (Matches HomePage Style) */}
+      {/* Hero / Search Header Section */}
       <div className="bg-gradient-to-br from-[#121620] via-[#131926] to-[#0e131d] border border-[#1f2430] rounded-2xl p-6 md:p-8 shadow-xl">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-4">
             <Sparkles className="w-3.5 h-3.5" /> 
+            Live AMFI Terminal
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
             Explore <span className="text-emerald-400">Mutual Funds</span>
@@ -134,7 +136,7 @@ export default function MutualFunds({ onSelectFund }) {
             Analyze live Net Asset Value (NAV), historical CAGR performance, and project long-term SIP wealth across top Indian AMCs.
           </p>
 
-          {/* Sticky-style Autocomplete Search Bar */}
+          {/* Autocomplete Search Bar */}
           <div ref={searchRef} className="relative mt-6">
             <div className="relative">
               <Search className="absolute left-4 top-3.5 text-gray-400 w-5 h-5" />
@@ -204,7 +206,7 @@ export default function MutualFunds({ onSelectFund }) {
         <span className="text-xs text-gray-500">Showing {displayedCards.length} Popular Funds</span>
       </div>
 
-      {/* Popular Mutual Funds Grid (Groww-Inspired Cards) */}
+      {/* Popular Mutual Funds Grid */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-4 h-4 text-emerald-400" />
@@ -219,7 +221,6 @@ export default function MutualFunds({ onSelectFund }) {
               className="bg-[#121620] border border-[#1f2430] hover:border-emerald-500/50 rounded-2xl p-5 cursor-pointer transition-all duration-200 flex flex-col justify-between group hover:shadow-lg hover:shadow-emerald-500/5"
             >
               <div>
-                {/* Top Badges */}
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">
                     {fund.category}
@@ -229,14 +230,12 @@ export default function MutualFunds({ onSelectFund }) {
                   </span>
                 </div>
 
-                {/* Fund Title & AMC */}
                 <h3 className="text-sm font-bold text-gray-100 group-hover:text-emerald-400 transition-colors line-clamp-2">
                   {fund.schemeName}
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">{fund.amc}</p>
               </div>
 
-              {/* Bottom Metrics Row */}
               <div className="mt-5 pt-4 border-t border-[#1f2430] flex items-center justify-between">
                 <div>
                   <span className="text-[11px] text-gray-500 block">3Y Annualized</span>
@@ -255,7 +254,7 @@ export default function MutualFunds({ onSelectFund }) {
         </div>
       </div>
 
-      {/* Bottom Info Cards (Matches Home Page Feature Cards) */}
+      {/* Bottom Info Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
         <div className="bg-[#121620] border border-[#1f2430] p-5 rounded-2xl flex items-start gap-3.5">
           <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">

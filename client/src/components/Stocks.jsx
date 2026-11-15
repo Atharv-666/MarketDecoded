@@ -9,6 +9,7 @@ import {
   Activity,
   BarChart3
 } from 'lucide-react';
+import API from '../api';
 
 // Market Benchmark Indices (Click to open IndexDetailView)
 const MARKET_INDICES = [
@@ -148,11 +149,12 @@ export default function Stocks({ onSelectStock }) {
 
   return (
     <div className="space-y-8 pb-12">
-      {/* 1. Hero / Search Header Section (Matches MutualFunds.jsx Style) */}
+      {/* 1. Hero / Search Header Section */}
       <div className="bg-gradient-to-br from-[#121620] via-[#131926] to-[#0e131d] border border-[#1f2430] rounded-2xl p-6 md:p-8 shadow-xl">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-4">
             <Sparkles className="w-3.5 h-3.5" /> 
+            Live NSE Terminal
           </div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
             Explore <span className="text-emerald-400">Indian Stocks</span>
@@ -281,7 +283,7 @@ export default function Stocks({ onSelectStock }) {
         <span className="text-xs text-gray-500">Showing {displayedStocks.length} NSE Stocks</span>
       </div>
 
-      {/* 4. Popular NSE Stocks Grid (Matches Mutual Funds Card Design) */}
+      {/* 4. Popular NSE Stocks Grid */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <TrendingUp className="w-4 h-4 text-emerald-400" />
@@ -296,7 +298,6 @@ export default function Stocks({ onSelectStock }) {
               className="bg-[#121620] border border-[#1f2430] hover:border-emerald-500/50 rounded-2xl p-5 cursor-pointer transition-all duration-200 flex flex-col justify-between group hover:shadow-lg hover:shadow-emerald-500/5"
             >
               <div>
-                {/* Top Badges */}
                 <div className="flex items-center justify-between gap-2 mb-3">
                   <span className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400">
                     {stock.sector}
@@ -306,7 +307,6 @@ export default function Stocks({ onSelectStock }) {
                   </span>
                 </div>
 
-                {/* Stock Name */}
                 <h3 className="text-sm font-bold text-gray-100 group-hover:text-emerald-400 transition-colors line-clamp-1">
                   {stock.name}
                 </h3>
@@ -315,7 +315,6 @@ export default function Stocks({ onSelectStock }) {
                 </p>
               </div>
 
-              {/* Bottom Metrics Row */}
               <div className="mt-5 pt-4 border-t border-[#1f2430] flex items-center justify-between">
                 <div>
                   <span className="text-[11px] text-gray-500 block">FinBERT Mood</span>
@@ -334,7 +333,7 @@ export default function Stocks({ onSelectStock }) {
         </div>
       </div>
 
-      {/* 5. Bottom Feature Strip (Matches Mutual Funds Bottom Info Cards) */}
+      {/* 5. Bottom Feature Strip */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
         <div className="bg-[#121620] border border-[#1f2430] p-5 rounded-2xl flex items-start gap-3.5">
           <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
