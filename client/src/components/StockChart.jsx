@@ -45,7 +45,6 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
     marketCap: '₹19.82 Lakh Cr',
     peRatio: '28.4',
     divYield: '0.31%',
-    // Groww-style About Company details
     about: {
       description: 'Reliance Industries Limited is an Indian multinational conglomerate company, headquartered in Mumbai. Its businesses include energy, petrochemicals, natural gas, retail, telecommunications, mass media, and textiles.',
       ceo: 'Mukesh D. Ambani',
@@ -58,7 +57,8 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
       { name: 'Adani Green', symbol: 'ADANIGREEN.NS', price: '₹1,350.00', change: '-0.85%', isUp: false },
       { name: 'NTPC Ltd', symbol: 'NTPC.NS', price: '₹375.20', change: '+2.10%', isUp: true }
     ],
-    candles: []
+    candles: [],
+    news: []
   });
 
   // SIP Calculator State
@@ -100,7 +100,8 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
             similarStocks: res.data.similarStocks || [
               { name: 'Benchmark Peer 1', symbol: 'TCS.NS', price: '₹4,120.00', change: '+0.92%', isUp: true },
               { name: 'Benchmark Peer 2', symbol: 'INFY.NS', price: '₹1,850.50', change: '+1.45%', isUp: true }
-            ]
+            ],
+            news: res.data.news || []
           }));
           setSymbol(res.data.symbol);
           setSearchInput(res.data.symbol);
@@ -111,7 +112,7 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
       } catch (err) {
         const message = err.response?.data?.error || 'Unable to load market data for this symbol.';
         setErrorMsg(message);
-        setStockData((prev) => ({ ...prev, candles: [] }));
+        setStockData((prev) => ({ ...prev, candles: [], news: [] }));
       }
       setLoading(false);
     };
@@ -496,7 +497,7 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
 
       </div>
 
-      {/* RIGHT SIDE: NEWS & SENTIX AI FEED */}
+      {/* RIGHT SIDE: REAL NEWS & SENTIX AI FEED */}
       <div className="lg:col-span-1 space-y-6">
         <div className="bg-[#131722] p-6 rounded-2xl border border-[#222838] shadow-2xl sticky top-20">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-[#1e2433]">
@@ -509,39 +510,15 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
           </div>
 
           <p className="text-xs text-gray-400 mb-4 leading-relaxed">
-            Real-time financial news sentiment markers mapped directly for <span className="text-white font-semibold">{symbol.replace(/\.(NS|BO)$/, '')}</span>.
+            Real-time financial news articles mapped directly for <span className="text-white font-semibold">{symbol.replace(/\.(NS|BO)$/, '')}</span>.
           </p>
 
           <div className="space-y-4">
-            {[
-              {
-                title: `${symbol.replace(/\.(NS|BO)$/, '')} expands enterprise automation & cloud partnerships`,
-                snippet: 'Strong quarterly performance driven by volume growth and improved operating margins across key segments.',
-                sentiment: 'Bullish (+0.84)',
-                isBullish: true,
-                time: '1h ago'
-              },
-              {
-                title: 'Global market consolidation impacts sectoral volume inflows',
-                snippet: 'Broader index adjustments show slight pullbacks amid institutional foreign capital rebalancing.',
-                sentiment: 'Neutral (0.00)',
-                isBullish: false,
-                time: '4h ago'
-              },
-              {
-                title: 'Regulatory policy update boosts domestic manufacturing sentiment',
-                snippet: 'New export incentives expected to improve annual operating cash flows for industry leaders.',
-                sentiment: 'Bullish (+0.62)',
-                isBullish: true,
-                time: 'Yesterday'
-              }
-            ].map((news, idx) => (
+            {(stockData.news || []).map((news, idx) => (
               <div key={idx} className="bg-[#0b0e14] p-4 rounded-xl border border-[#222838] hover:border-[#323d54] transition group">
                 <div className="flex justify-between items-start gap-2 mb-2">
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-bold ${
-                    news.isBullish ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-gray-800 text-gray-300'
-                  }`}>
-                    {news.sentiment}
+                  <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    {news.publisher || 'Yahoo News'}
                   </span>
                   <span className="text-[10px] text-gray-500">{news.time}</span>
                 </div>
@@ -551,10 +528,15 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
                 <p className="text-[11px] text-gray-400 leading-relaxed mb-2">
                   {news.snippet}
                 </p>
-                <div className="flex items-center gap-1 text-[10px] text-cyan-400 font-semibold cursor-pointer">
-                  <span>Read Full Analysis</span>
+                <a 
+                  href={news.link} 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex items-center gap-1 text-[10px] text-cyan-400 font-semibold cursor-pointer"
+                >
+                  <span>Read Full Article</span>
                   <ExternalLink className="w-3 h-3" />
-                </div>
+                </a>
               </div>
             ))}
           </div>

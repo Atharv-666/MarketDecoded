@@ -8,9 +8,13 @@ connectDB();
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+// FIX: Allow credentials and your local Vite frontend origin
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}));
 
+app.use(express.json());
 
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/stocks', require('./routes/stockRoutes')); 
