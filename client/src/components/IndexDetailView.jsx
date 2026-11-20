@@ -1,7 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createChart, LineSeries } from 'lightweight-charts';
 import { Bell, Bookmark, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import axios from 'axios';
+import API from '../api';
+
+const safeText = (val, fallback = '—') => {
+  if (val === null || val === undefined || typeof val === 'object') return fallback;
+  return String(val);
+};
 
 export default function IndexDetailView({ indexSymbol = '^NSEI', onSelectStock }) {
   const chartContainerRef = useRef(null);
@@ -13,7 +18,7 @@ export default function IndexDetailView({ indexSymbol = '^NSEI', onSelectStock }
     dayChange: 0,
     dayChangePercent: 0,
     candles: [],
-    sidebarItems: []
+    sidebarItems: [],
   });
   const [timeframe, setTimeframe] = useState('6M');
   const [loading, setLoading] = useState(false);
@@ -31,9 +36,17 @@ export default function IndexDetailView({ indexSymbol = '^NSEI', onSelectStock }
     const fetchIndexDetails = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`http://localhost:5000/api/stocks/index/${encodeURIComponent(indexSymbol)}`);
-        if (res.data) {
-          setIndexData(res.data);
+        const res = await API.get(
+          `/stocks/index/${encodeURIComponent(indexSymbol)}?range=${encodeURIComponent(timeframe)}`
+        );
+        if (res.data && typeof res.data === 'object') {
+          setIndexData((prev) => ({
+            ...prev,
+            ...res.data,
+            name: safeText(res.data.name || res.data.symbol, prev.name),
+            candles: Array.isArray(res.data.candles) ? res.data.candles : [],
+            sidebarItems: Array.isArray(res.data.sidebarItems) ? res.data.sidebarItems : [],
+          }));
         }
       } catch (err) {
         console.error('Error loading index overview:', err);
@@ -52,7 +65,8 @@ export default function IndexDetailView({ indexSymbol = '^NSEI', onSelectStock }
       chartInstanceRef.current = null;
     }
 
-    const isPositive = indexData.dayChange >= 0;
+    const dayChangeNum = Number(indexData.dayChange) || 0;
+    const isPositive = dayChangeNum >= 0;
     const lineColor = isPositive ? '#00b386' : '#eb5b3c';
 
     const chart = createChart(chartContainerRef.current, {
@@ -97,11 +111,12 @@ export default function IndexDetailView({ indexSymbol = '^NSEI', onSelectStock }
     };
   }, [indexData, timeframe]);
 
-  const isPositive = indexData.dayChange >= 0;
+  const dayChangeNum = Number(indexData.dayChange) || 0;
+  const isPositive = dayChangeNum >= 0;
+  const displayPrice = Number(indexData.livePrice ?? indexData.price ?? 0);
 
   return (
     <div className="space-y-6">
-      {/* Index Selector Tabs */}
       <div className="flex items-center gap-3 overflow-x-auto pb-2">
         {indicesList.map((idx) => (
           <button
@@ -120,38 +135,50 @@ export default function IndexDetailView({ indexSymbol = '^NSEI', onSelectStock }
         ))}
       </div>
 
-      {/* Main 2-Column Groww Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* LEFT COLUMN (8 Cols): Index Header & Technical Chart */}
         <div className="lg:col-span-8 bg-[#131722] p-6 rounded-2xl border border-[#222838]">
           <div className="flex justify-between items-start mb-4">
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-white mb-1">
-                {indexData.name}
+                {safeText(indexData.name, 'Index')}
               </h1>
               <div className="flex items-baseline gap-3">
                 <span className="text-3xl font-extrabold text-white">
-                  ₹{indexData.livePrice?.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                  ₹{displayPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </span>
-                <span className={`text-sm font-bold flex items-center gap-1 ${isPositive ? 'text-[#00b386]' : 'text-[#eb5b3c]'}`}>
-                  {isPositive ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                  {isPositive ? '+' : ''}{indexData.dayChange} ({isPositive ? '+' : ''}{indexData.dayChangePercent}%) 1D
+                <span
+                  className={`text-sm font-bold flex items-center gap-1 ${
+                    isPositive ? 'text-[#00b386]' : 'text-[#eb5b3c]'
+                  }`}
+                >
+                  {isPositive ? (
+                    <ArrowUpRight className="w-4 h-4" />
+                  ) : (
+                    <ArrowDownRight className="w-4 h-4" />
+                  )}
+                  {isPositive ? '+' : ''}
+                  {safeText(indexData.dayChange, '0')} ({isPositive ? '+' : ''}
+                  {safeText(indexData.dayChangePercent ?? indexData.percentChange, '0')}%) 1D
                 </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="p-2.5 rounded-full border border-[#2a3040] text-gray-400 hover:text-white transition cursor-pointer" title="Create Alert">
+              <button
+                className="p-2.5 rounded-full border border-[#2a3040] text-gray-400 hover:text-white transition cursor-pointer"
+                title="Create Alert"
+              >
                 <Bell className="w-4 h-4" />
               </button>
-              <button className="p-2.5 rounded-full border border-[#2a3040] text-gray-400 hover:text-emerald-400 transition cursor-pointer" title="Watchlist">
+              <button
+                className="p-2.5 rounded-full border border-[#2a3040] text-gray-400 hover:text-emerald-400 transition cursor-pointer"
+                title="Watchlist"
+              >
                 <Bookmark className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Chart Canvas */}
           <div className="relative min-h-[380px] w-full my-2">
             {loading && (
               <div className="absolute inset-0 flex items-center justify-center bg-[#131722]/70 z-10 text-sm text-gray-400">
@@ -161,7 +188,6 @@ export default function IndexDetailView({ indexSymbol = '^NSEI', onSelectStock }
             <div ref={chartContainerRef} className="w-full" />
           </div>
 
-          {/* Timeframe Selector Pills */}
           <div className="flex flex-wrap items-center gap-2 pt-4 mt-2 border-t border-[#1e2433]">
             {timeframes.map((tf) => (
               <button
@@ -179,33 +205,42 @@ export default function IndexDetailView({ indexSymbol = '^NSEI', onSelectStock }
           </div>
         </div>
 
-        {/* RIGHT COLUMN (4 Cols): Top Index Options / Constituents Sidebar */}
         <div className="lg:col-span-4 bg-[#131722] rounded-2xl border border-[#222838] overflow-hidden">
           <div className="p-4 border-b border-[#222838] bg-[#181d28]">
-            <h2 className="font-bold text-white text-sm">Top {indexData.name} Options & Constituents</h2>
+            <h2 className="font-bold text-white text-sm">
+              Top {safeText(indexData.name, 'Index')} Options & Constituents
+            </h2>
           </div>
           <div className="divide-y divide-[#1e2433]">
             {indexData.sidebarItems && indexData.sidebarItems.length > 0 ? (
               indexData.sidebarItems.map((item, index) => (
-                <div key={index} className="p-4 flex items-center justify-between hover:bg-[#1a2233] transition cursor-pointer">
+                <div
+                  key={index}
+                  className="p-4 flex items-center justify-between hover:bg-[#1a2233] transition cursor-pointer"
+                >
                   <div>
-                    <h3 className="text-xs font-bold text-white">{item.title}</h3>
+                    <h3 className="text-xs font-bold text-white">{safeText(item.title)}</h3>
                     <span className="text-[10px] text-gray-400">Active derivative contract</span>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm font-bold text-white">{item.price}</div>
-                    <div className={`text-xs font-semibold ${item.isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {item.change}
+                    <div className="text-sm font-bold text-white">{safeText(item.price)}</div>
+                    <div
+                      className={`text-xs font-semibold ${
+                        item.isUp ? 'text-emerald-400' : 'text-rose-400'
+                      }`}
+                    >
+                      {safeText(item.change)}
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="p-6 text-center text-xs text-gray-400">No options data available for this index.</div>
+              <div className="p-6 text-center text-xs text-gray-400">
+                No options data available for this index.
+              </div>
             )}
           </div>
         </div>
-
       </div>
     </div>
   );

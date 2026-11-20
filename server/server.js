@@ -8,27 +8,35 @@ connectDB();
 
 const app = express();
 
-// Allow local Vite frontend + live deployed frontend URL
+// Allow local Vite frontend + configured FRONTEND_URL + Market Decoded Vercel domains
 const allowedOrigins = [
   'http://localhost:5173',
   process.env.FRONTEND_URL?.replace(/\/$/, ''),
 ].filter(Boolean);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like Postman, curl, or mobile apps)
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error(`CORS blocked for origin: ${origin}`));
-  },
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const cleanOrigin = origin.replace(/\/$/, '');
+      const isAllowed =
+        allowedOrigins.includes(cleanOrigin) ||
+        /^https:\/\/market-decoded.*\.vercel\.app$/.test(cleanOrigin);
+
+      if (isAllowed) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/stocks', require('./routes/stockRoutes'));
+app.use('/api/mutual-funds', require('./routes/mutualFundRoutes'));
 
 app.get('/', (req, res) => {
   res.send('Market Decoded API Server running...');

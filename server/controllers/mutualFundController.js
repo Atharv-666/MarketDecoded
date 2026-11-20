@@ -2,51 +2,59 @@ const axios = require('axios');
 
 // 1. Get all mutual funds for search / directory
 exports.getAllMutualFunds = async (req, res) => {
-    try {
-        const response = await axios.get('https://api.mfapi.in/mf');
-        // Returns an array of objects: [{code: 120503, name: "Aditya Sun Life...", ISIN: "...", ...}]
-        res.json(response.data);
-    } catch (error) {
-        console.error('Error fetching mutual fund list:', error.message);
-        res.status(500).json({ error: 'Failed to fetch mutual funds directory' });
-    }
+  try {
+    const response = await axios.get('https://api.mfapi.in/mf');
+    res.json(response.data);
+  } catch (error) {
+    console.error('Error fetching mutual fund list:', error.message);
+    res.status(500).json({ error: 'Failed to fetch mutual funds directory' });
+  }
 };
 
 // 2. Get specific fund details and historical NAV for charting & CAGR
 exports.getMutualFundDetails = async (req, res) => {
-    try {
-        const { schemeCode } = req.params;
-        const response = await axios.get(`https://api.mfapi.in/mf/${schemeCode}`);
-        
-        // response.data contains { meta: { fund_house, scheme_type, scheme_category, scheme_name }, data: [{date, nav}, ...] }
-        const mfData = response.data;
+  try {
+    const { schemeCode } = req.params;
+    const response = await axios.get(`https://api.mfapi.in/mf/${schemeCode}`);
 
-        if (!mfData || !mfData.data || mfData.data.length === 0) {
-            return res.status(404).json({ error: 'Mutual fund scheme not found' });
-        }
+    const mfData = response.data;
 
-        // Calculate basic returns if historical data exists
-        const navList = mfData.data;
-        const currentNav = parseFloat(navList[0].nav);
-        
-        // Helper to find NAV approx 1 year or 3 years ago if available
-        // Note: MFapi data is sorted latest date first
-        let oneYearNav = navList.length > 250 ? parseFloat(navList[250].nav) : currentNav;
-        let threeYearNav = navList.length > 750 ? parseFloat(navList[750].nav) : oneYearNav;
-
-        let return1Y = (((currentNav - oneYearNav) / oneYearNav) * 100).toFixed(2);
-        let return3Y = (Math.pow((currentNav / threeYearNav), (1 / 3)) - 1) * 100;
-        return3Y = isNaN(return3Y) ? 'N/A' : return3Y.toFixed(2);
-
-        res.json({
-            meta: mfData.meta,
-            currentNav,
-            return1Y: `${return1Y}%`,
-            return3Y: `${return3Y}%`,
-            historicalNav: navList // Array of {date: "DD-MM-YYYY", nav: "..."} for charts
-        });
-    } catch (error) {
-        console.error('Error fetching mutual fund details:', error.message);
-        res.status(500).json({ error: 'Failed to fetch mutual fund details' });
+    if (!mfData || !Array.isArray(mfData.data) || mfData.data.length === 0) {
+      return res.status(404).json({ error: 'Mutual fund scheme not found' });
     }
+
+    const navList = mfData.data;
+    const currentNav = parseFloat(navList[0]?.nav);
+    if (!Number.isFinite(currentNav) || currentNav <= 0) {
+      return res.status(400).json({ error: 'Invalid latest NAV for this scheme' });
+    }
+
+    const oneYearNav =
+      navList.length > 250 && Number.isFinite(parseFloat(navList[250]?.nav))
+        ? parseFloat(navList[250].nav)
+        : currentNav;
+
+    const threeYearNav =
+      navList.length > 750 && Number.isFinite(parseFloat(navList[750]?.nav))
+        ? parseFloat(navList[750].nav)
+        : oneYearNav;
+
+    const return1Y =
+      oneYearNav > 0 ? `${(((currentNav - oneYearNav) / oneYearNav) * 100).toFixed(2)}%` : 'N/A';
+
+    const raw3Y =
+      threeYearNav > 0 ? (Math.pow(currentNav / threeYearNav, 1 / 3) - 1) * 100 : NaN;
+    const return3Y = Number.isFinite(raw3Y) ? `${raw3Y.toFixed(2)}%` : 'N/A';
+
+    res.json({
+      meta: mfData.meta,
+      currentNav,
+      return1Y,
+      return3Y,
+      historicalNav: navList,
+    });
+  } catch (error) {
+    console.error('Error fetching mutual fund details:', error.message);
+    res.status(500).json({ error: 'Failed to fetch mutual fund details' });
+  }
 };
