@@ -108,7 +108,7 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
   // Live search query debounced fetch
   useEffect(() => {
     const q = searchInput.trim();
-    if (!q || q.length < 2) {
+    if (!q) {
       setSearchResults([]);
       return;
     }
@@ -122,7 +122,7 @@ export default function StockChart({ initialSymbol = 'RELIANCE.NS', onStockDataU
       } catch (err) {
         console.warn('Search query error:', err.message);
       }
-    }, 250);
+    }, 150);
 
     return () => clearTimeout(timer);
   }, [searchInput]);

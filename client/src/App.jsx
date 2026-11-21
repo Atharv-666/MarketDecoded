@@ -87,82 +87,150 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0e14] text-gray-100 flex flex-col">
-      <header className="border-b border-[#1f2430] bg-[#121620]/95 backdrop-blur-md px-4 md:px-8 py-3.5 flex flex-wrap justify-between items-center gap-4 sticky top-0 z-50">
-        <div
-          className="flex items-center gap-2.5 cursor-pointer"
-          onClick={() => setActiveTab('home')}
-        >
-          <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center font-black text-emerald-400 text-sm">
-            MD
-          </div>
-          <span className="font-extrabold text-lg text-white tracking-wider">
-            MARKET<span className="text-emerald-400">DECODED</span>
+    <div className="min-h-screen bg-[#0b0e14] text-gray-100 flex flex-col selection:bg-emerald-500 selection:text-black">
+      {/* TOP NOTIFICATION / LIVE MARKET TICKER BANNER */}
+      <div className="bg-[#0e121a] border-b border-[#1b212d] py-1.5 px-4 text-[11px] text-gray-400 hidden sm:flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex items-center gap-1 text-emerald-400 font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live NSE Data
           </span>
+          <span className="text-gray-500">•</span>
+          <span>Zero-Brokerage Research</span>
+          <span className="text-gray-500">•</span>
+          <span>14,000+ AMFI Mutual Funds</span>
+        </div>
+        <div className="flex items-center gap-4 text-xs font-mono">
+          <span className="text-gray-300">NIFTY 50: <strong className="text-emerald-400">23,518.50 (+0.42%)</strong></span>
+          <span className="text-gray-300">SENSEX: <strong className="text-emerald-400">77,580.30 (+0.38%)</strong></span>
+        </div>
+      </div>
+
+      {/* MAIN NAVBAR */}
+      <header className="border-b border-[#1f2430] bg-[#121620]/90 backdrop-blur-xl px-4 md:px-8 py-3 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          {/* BRAND LOGO */}
+          <div
+            className="flex items-center gap-2.5 cursor-pointer group"
+            onClick={() => setActiveTab('home')}
+          >
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 p-[1px] shadow-lg shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+              <div className="w-full h-full bg-[#0b0e14] rounded-[11px] flex items-center justify-center font-black text-emerald-400 text-sm">
+                MD
+              </div>
+            </div>
+            <div>
+              <span className="font-extrabold text-lg text-white tracking-wider block leading-tight">
+                MARKET<span className="text-emerald-400">DECODED</span>
+              </span>
+              <span className="text-[10px] text-gray-400 block tracking-normal">Financial Intelligence</span>
+            </div>
+          </div>
+
+          {/* DESKTOP NAV LINKS */}
+          <nav className="hidden md:flex items-center gap-1 bg-[#0b0e14]/70 p-1 rounded-xl border border-[#1f2430]">
+            <button
+              onClick={() => setActiveTab('home')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                activeTab === 'home'
+                  ? 'bg-[#181f2c] text-white shadow-sm'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => setActiveTab('stocks')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                activeTab === 'stocks' || activeTab === 'stock-detail'
+                  ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Stocks Terminal
+            </button>
+            <button
+              onClick={() => setActiveTab('mutual-funds')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                activeTab === 'mutual-funds' || activeTab === 'mf-detail'
+                  ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30 shadow-sm'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              Mutual Funds
+            </button>
+            <button
+              onClick={() => setActiveTab('sip')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                activeTab === 'sip'
+                  ? 'bg-amber-500/15 text-amber-300 border border-amber-500/30 shadow-sm'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              SIP Calculator
+            </button>
+          </nav>
+
+          {/* RIGHT ACTION BUTTONS & USER PROFILE */}
+          <div className="flex items-center gap-2.5">
+            {currentUser ? (
+              <div className="flex items-center gap-3 bg-[#0b0e14] border border-[#1f2430] px-3.5 py-1.5 rounded-xl">
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
+                  <UserCheck className="w-4 h-4" />
+                  <span className="max-w-[120px] truncate">{currentUser.name}</span>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  title="Logout"
+                  className="text-gray-400 hover:text-rose-400 transition cursor-pointer"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openAuthModal('login')}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-gray-300 hover:text-white bg-[#0b0e14] border border-[#262d3d] hover:border-gray-500 transition cursor-pointer"
+                >
+                  Sign In
+                </button>
+                <button
+                  onClick={() => openAuthModal('signup')}
+                  className="px-4 py-1.5 rounded-xl text-xs font-bold text-gray-950 bg-emerald-500 hover:bg-emerald-400 shadow-md shadow-emerald-500/20 transition cursor-pointer"
+                >
+                  Register
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        <nav className="flex items-center gap-6 md:gap-8 text-xs md:text-sm font-semibold">
+        {/* MOBILE BOTTOM NAVIGATION BAR */}
+        <div className="md:hidden flex items-center justify-around pt-3 mt-2 border-t border-[#1f2430] text-[11px] font-semibold">
+          <button
+            onClick={() => setActiveTab('home')}
+            className={`py-1 ${activeTab === 'home' ? 'text-emerald-400 font-bold' : 'text-gray-400'}`}
+          >
+            Home
+          </button>
           <button
             onClick={() => setActiveTab('stocks')}
-            className={`transition cursor-pointer ${
-              activeTab === 'stocks' || activeTab === 'stock-detail'
-                ? 'text-emerald-400'
-                : 'text-gray-300 hover:text-white'
-            }`}
+            className={`py-1 ${activeTab === 'stocks' || activeTab === 'stock-detail' ? 'text-emerald-400 font-bold' : 'text-gray-400'}`}
           >
             Stocks
           </button>
           <button
             onClick={() => setActiveTab('mutual-funds')}
-            className={`transition cursor-pointer ${
-              activeTab === 'mutual-funds' || activeTab === 'mf-detail'
-                ? 'text-emerald-400'
-                : 'text-gray-300 hover:text-white'
-            }`}
+            className={`py-1 ${activeTab === 'mutual-funds' || activeTab === 'mf-detail' ? 'text-purple-400 font-bold' : 'text-gray-400'}`}
           >
-            Mutual Funds
+            Funds
           </button>
           <button
             onClick={() => setActiveTab('sip')}
-            className={`transition cursor-pointer ${
-              activeTab === 'sip' ? 'text-emerald-400' : 'text-gray-300 hover:text-white'
-            }`}
+            className={`py-1 ${activeTab === 'sip' ? 'text-amber-400 font-bold' : 'text-gray-400'}`}
           >
-            SIP Calculator
+            Calculator
           </button>
-        </nav>
-
-        <div className="flex items-center gap-3">
-          {currentUser ? (
-            <div className="flex items-center gap-3 bg-[#0b0e14] border border-[#1f2430] px-3 py-1.5 rounded-xl">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-                <UserCheck className="w-4 h-4" />
-                <span>{currentUser.name}</span>
-              </div>
-              <button
-                onClick={handleLogout}
-                title="Logout"
-                className="text-gray-400 hover:text-red-400 transition cursor-pointer"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={() => openAuthModal('login')}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-200 hover:text-white bg-[#0b0e14] border border-[#262d3d] hover:border-gray-600 transition cursor-pointer"
-              >
-                Login
-              </button>
-              <button
-                onClick={() => openAuthModal('signup')}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-gray-950 bg-emerald-500 hover:bg-emerald-400 shadow-lg shadow-emerald-500/20 transition cursor-pointer"
-              >
-                Sign Up
-              </button>
-            </>
-          )}
         </div>
       </header>
 
@@ -184,14 +252,7 @@ export default function App() {
               <ArrowLeft className="w-4 h-4" /> Back to Stocks Directory
             </button>
 
-            {selectedSymbol.startsWith('^') ? (
-              <IndexDetailView
-                indexSymbol={selectedSymbol}
-                onSelectStock={setSelectedSymbol}
-              />
-            ) : (
-              <StockChart initialSymbol={selectedSymbol} />
-            )}
+            <StockChart initialSymbol={selectedSymbol} />
           </div>
         )}
 

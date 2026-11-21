@@ -111,6 +111,8 @@ export default function Stocks({ onSelectStock }) {
   const [showDropdown, setShowDropdown] = useState(false);
   const searchRef = useRef(null);
 
+  const [liveSearchResults, setLiveSearchResults] = useState([]);
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (searchRef.current && !searchRef.current.contains(e.target)) {
@@ -121,15 +123,40 @@ export default function Stocks({ onSelectStock }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Filter suggestions from curated list + allow direct NSE ticker launch
-  const searchResults = searchQuery.trim().length > 0
-    ? POPULAR_STOCKS.filter(
-        (s) =>
-          s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          s.sector.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
+  // Fetch from the full 2600+ stock directory via API
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) {
+      setLiveSearchResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await API.get(`/stocks/search?q=${encodeURIComponent(q)}`);
+        if (Array.isArray(res.data) && res.data.length > 0) {
+          setLiveSearchResults(res.data);
+        } else {
+          // Fallback to local filtering
+          const localFiltered = POPULAR_STOCKS.filter(
+            (s) =>
+              s.name.toLowerCase().includes(q.toLowerCase()) ||
+              s.symbol.toLowerCase().includes(q.toLowerCase())
+          );
+          setLiveSearchResults(localFiltered);
+        }
+      } catch (err) {
+        const localFiltered = POPULAR_STOCKS.filter(
+          (s) =>
+            s.name.toLowerCase().includes(q.toLowerCase()) ||
+            s.symbol.toLowerCase().includes(q.toLowerCase())
+        );
+        setLiveSearchResults(localFiltered);
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleDirectSearchSubmit = (e) => {
     e.preventDefault();
@@ -189,7 +216,7 @@ export default function Stocks({ onSelectStock }) {
             {/* Instant Search Dropdown */}
             {showDropdown && searchQuery.trim().length > 0 && (
               <div className="absolute left-0 right-0 mt-2 bg-[#121620] border border-[#262d3d] rounded-xl shadow-2xl z-40 max-h-80 overflow-y-auto divide-y divide-[#1f2430]">
-                {searchResults.map((stock) => (
+                {liveSearchResults.map((stock) => (
                   <div
                     key={stock.symbol}
                     onClick={() => {
@@ -201,7 +228,7 @@ export default function Stocks({ onSelectStock }) {
                     <div>
                       <p className="text-sm font-medium text-gray-100">{stock.name}</p>
                       <span className="text-[11px] text-gray-500 font-mono">
-                        {stock.symbol} • {stock.sector}
+                        {stock.symbol} • {stock.sector || stock.exchange || 'NSE'}
                       </span>
                     </div>
                     <span className="text-xs font-semibold text-emerald-400 shrink-0 flex items-center gap-1">
